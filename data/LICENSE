@@ -1,0 +1,18 @@
+Detourmap Places dataset
+https://detourmap.com/data/
+
+To the extent possible under law, Detourmap (detourmap.com) has dedicated
+this compilation to the public domain under the Creative Commons CC0 1.0
+Universal Public Domain Dedication. The underlying facts come from Wikidata,
+which is itself published under CC0.
+
+You can copy, modify, distribute and use the data, even for commercial
+purposes, all without asking permission. Attribution is appreciated but not
+required — a link to https://detourmap.com is the nice move.
+
+Full dedication text: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
+Note: the `image` column contains URLs to files hosted on Wikimedia Commons.
+The photographs themselves are NOT part of this dataset and each carries its
+own per-file license on Commons — check a file's Commons page before
+republishing the image itself.

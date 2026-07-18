@@ -1,0 +1,88 @@
+# Sync the Kaggle and Hugging Face mirrors from this repo.
+#
+# Runs when a GitHub release is published (which is also what makes Zenodo
+# mint a new DOI) — so one release = DOI + both mirrors. Can also be run by
+# hand from the Actions tab (workflow_dispatch).
+#
+# INERT until two secrets exist (Settings → Secrets and variables → Actions):
+#   KAGGLE_API_TOKEN   from kaggle.com/settings/api → "Generate New Token"
+#                      (the new KGAT_… tokens; identity is embedded, no username)
+#   HF_TOKEN           from huggingface.co/settings/tokens (write scope)
+# Each job skips itself politely when its secret is missing.
+
+name: Sync mirrors
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  kaggle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Push a new Kaggle dataset version
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          if [ -z "$KAGGLE_API_TOKEN" ]; then echo "No KAGGLE_API_TOKEN secret — skipping Kaggle sync."; exit 0; fi
+          pip -q install 'kaggle>=1.8'
+          mkdir -p ds && cp data/places.csv data/places.geojson data/places-compact.json ds/
+          cat > ds/dataset-metadata.json <<'META'
+          {
+            "id": "albanius/world-notable-places-detourmap",
+            "title": "World Notable Places — Detourmap (70k, from Wikidata)",
+            "licenses": [{ "name": "CC0-1.0" }]
+          }
+          META
+          set +e
+          OUT=$(kaggle datasets version -p ds -m "Sync from GitHub ${GITHUB_REF_NAME:-manual}" 2>&1)
+          set -e
+          echo "$OUT"
+          # First run on a fresh slug: bootstrap the dataset (public) instead.
+          # (Kaggle answers 403 Forbidden — not 404 — for missing/deleted slugs.)
+          if echo "$OUT" | grep -qiE "not found|404|403|forbidden"; then
+            echo "Dataset not found — creating it (public)."
+            OUT=$(kaggle datasets create -p ds -u 2>&1)
+            echo "$OUT"
+          fi
+          # The kaggle CLI exits 0 even on server-side errors — fail loudly.
+          # ("Error while trying to load upload info" is a known benign CLI
+          #  warning on newer server responses; uploads still succeed.)
+          if echo "$OUT" | grep -vi "load upload info" | grep -qi "error"; then
+            echo "::error::Kaggle push failed (see output above)"
+            exit 1
+          fi
+
+  huggingface:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Push files to the Hugging Face dataset
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then echo "No HF_TOKEN secret — skipping Hugging Face sync."; exit 0; fi
+          pip -q install huggingface_hub
+          python - <<'EOF'
+          import os
+          from huggingface_hub import HfApi
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          msg = f"Sync from GitHub {os.environ.get('GITHUB_REF_NAME', 'manual')}"
+          for name in ["places.csv", "places.geojson", "places-compact.json"]:
+              api.upload_file(
+                  path_or_fileobj=f"data/{name}",
+                  path_in_repo=name,
+                  repo_id="Flightmussy/detourmap-places",
+                  repo_type="dataset",
+                  commit_message=msg,
+              )
+          print("uploaded 3 files:", msg)
+          EOF

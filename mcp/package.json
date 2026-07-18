@@ -1,0 +1,14 @@
+{
+  "name": "detourmap-mcp",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Detourmap MCP server — 70,343 notable places worldwide as read-only MCP tools. Remote endpoint: https://detourmap.com/mcp",
+  "type": "module",
+  "main": "server.mjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}
