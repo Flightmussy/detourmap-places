@@ -1,0 +1,21 @@
+{
+  "license": "cc0-1.0",
+  "creators": [{ "name": "Flightmussy" }],
+  "keywords": [
+    "points of interest",
+    "landmarks",
+    "travel",
+    "tourism",
+    "Wikidata",
+    "GeoJSON",
+    "open data",
+    "geography"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://detourmap.com",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}
