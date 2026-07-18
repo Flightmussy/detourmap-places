@@ -1,5 +1,7 @@
 # Detourmap Places — 70,343 places worth a detour, as open data
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21432200.svg)](https://doi.org/10.5281/zenodo.21432200)
+
 **70,343 places · 16 kinds · 348 countries and territories** — every place with coordinates, a photo and an English Wikipedia article, from [detourmap.com](https://detourmap.com), the interactive world map of places worth going out of your way for: ancient ruins, waterfalls, caves, volcanoes, castles, monuments, museums, ghost towns and more.
 
 🗺️ **Explore it interactively:** [detourmap.com](https://detourmap.com)
@@ -60,6 +62,14 @@ gdf.plot(column="kind", markersize=1, figsize=(16, 8))
 - **Data** (`data/`): [**CC0 1.0**](https://creativecommons.org/publicdomain/zero/1.0/) — the underlying facts come from [Wikidata](https://www.wikidata.org) (CC0) and this compilation is dedicated to the public domain as well. Use it for anything; attribution is appreciated but not required (a link to [detourmap.com](https://detourmap.com) is the nice move). ([notice](data/LICENSE))
 - **Photos are not included** — the `image` column contains URLs to Wikimedia Commons files, and each photo carries its own per-file license on Commons. Check before republishing an image.
 - **Code** (the MCP server in `mcp/`): [MIT](LICENSE).
+
+## Also available on
+
+- **Zenodo (archived, DOI):** [doi.org/10.5281/zenodo.21432200](https://doi.org/10.5281/zenodo.21432200) — always resolves to the latest version
+
+## Citing
+
+> Detourmap Places: 70,343 places worth a detour, from Wikidata (2026). detourmap.com. DOI: 10.5281/zenodo.21432200. https://github.com/Flightmussy/detourmap-places
 
 ## Updating
 
