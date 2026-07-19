@@ -57,6 +57,7 @@ const KINDS = {
   tower: { label: 'Towers & lighthouses', slug: 'towers' },
   structure: { label: 'Great structures (bridges & aqueducts)', slug: 'bridges' },
   castle: { label: 'Castles & palaces', slug: 'castles' },
+  military: { label: 'Military heritage', slug: 'military-heritage' },
   abandoned: { label: 'Abandoned places & ghost towns', slug: 'ghost-towns' },
   macabre: { label: 'Macabre & curious', slug: 'macabre-sites' },
   museum: { label: 'Museums & galleries', slug: 'museums' },
@@ -92,9 +93,12 @@ function loadData() {
   const data = JSON.parse(readFileSync(DATA, 'utf8'))
   const c = {}
   data.columns.forEach((name, i) => (c[name] = i))
+  const perKind = new Map() // rows are fame-sorted → running count = rank within kind
   places = data.rows.map((r, i) => {
     const rawCountry = r[c.country] ?? null
     const rank = i + 1
+    const kindRank = (perKind.get(r[c.cat]) ?? 0) + 1
+    perKind.set(r[c.cat], kindRank)
     return {
       qid: r[c.id],
       name: r[c.name],
@@ -109,6 +113,7 @@ function loadData() {
       desc: r[c.desc] ?? null,
       slug: r[c.slug],
       rank,
+      kindRank,
       tier: tierOf(rank),
     }
   })
@@ -160,6 +165,7 @@ function briefOf(p) {
     latitude: p.lat,
     longitude: p.lon,
     fame_rank: p.rank,
+    kind_rank: p.kindRank,
     fame_tier: p.tier,
     map: `${SITE_URL}/?place=${p.slug}`,
     wikipedia: p.wiki,
@@ -314,9 +320,9 @@ const TOOLS = [
   },
   {
     name: 'list_kinds',
-    title: 'The sixteen kinds of place',
+    title: 'The seventeen kinds of place',
     description:
-      'Detourmap’s sixteen kinds (layers) with worldwide counts and browsable index pages — from ancient ruins and sacred sites to ghost towns, macabre curiosities and theme parks.',
+      'Detourmap’s seventeen kinds (layers) with worldwide counts and browsable index pages — from ancient ruins and sacred sites to ghost towns, military heritage, macabre curiosities and theme parks.',
     inputSchema: { type: 'object', properties: {} },
     run() {
       const counts = {}
@@ -442,7 +448,7 @@ function handleRpc(msg) {
       serverInfo: { name: 'detourmap', title: 'Detourmap — every place worth the detour', version: VERSION },
       instructions:
         `Read-only tools over the Detourmap atlas: ${displayTotals.total.toLocaleString('en-US')} notable places ` +
-        `across ${displayTotals.countries} countries in sixteen kinds — ruins, beaches, caves, waterfalls, volcanoes, ` +
+        `across ${displayTotals.countries} countries in seventeen kinds — ruins, beaches, caves, waterfalls, volcanoes, ` +
         `castles, museums, ghost towns and more (facts from Wikidata, CC0; every place has a photo and an English ` +
         `Wikipedia article). Every result links its spot on ${SITE_URL}. Use search_places / get_place for lookups, ` +
         `places_near for "what's worth visiting near X" (geocode X first), top_places for fame, list_kinds / ` +

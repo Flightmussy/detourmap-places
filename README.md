@@ -1,8 +1,8 @@
-# Detourmap Places — 70,343 places worth a detour, as open data
+# Detourmap Places — 71,763 places worth a detour, as open data
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21432200.svg)](https://doi.org/10.5281/zenodo.21432200)
 
-**70,343 places · 16 kinds · 348 countries and territories** — every place with coordinates, a photo and an English Wikipedia article, from [detourmap.com](https://detourmap.com), the interactive world map of places worth going out of your way for: ancient ruins, waterfalls, caves, volcanoes, castles, monuments, museums, ghost towns and more.
+**71,763 places · 17 kinds · 349 countries and territories** — every place with coordinates, a photo and an English Wikipedia article, from [detourmap.com](https://detourmap.com), the interactive world map of places worth going out of your way for: ancient ruins, waterfalls, caves, volcanoes, castles, military heritage, monuments, museums, ghost towns and more.
 
 🗺️ **Explore it interactively:** [detourmap.com](https://detourmap.com)
 🏆 **Every country's single most famous place, ranked:** [detourmap.com/famous](https://detourmap.com/famous/)
@@ -24,12 +24,13 @@ The same files are served from [detourmap.com/data](https://detourmap.com/data/)
 |---|---|---|
 | `qid` | string | Wikidata item ID, e.g. `Q243` |
 | `name` | string | English label |
-| `kind` / `kind_label` | enum | One of sixteen: `ancient` · `monument` · `sacred` · `beach` · `waterfall` · `cave` · `volcanic` · `natural` · `tower` · `structure` · `castle` · `abandoned` · `macabre` · `museum` · `garden` · `leisure` |
+| `kind` / `kind_label` | enum | One of seventeen: `ancient` · `monument` · `sacred` · `beach` · `waterfall` · `cave` · `volcanic` · `natural` · `tower` · `structure` · `castle` · `military` · `abandoned` · `macabre` · `museum` · `garden` · `leisure` |
 | `country` / `iso` | string | Country per Wikidata's country statement (P17); ISO 3166-1 alpha-2 where known |
 | `latitude` / `longitude` | number | WGS84 |
 | `founded_year` | number\|empty | Negative = BC |
 | `century` | string\|empty | Display label, e.g. `3rd century BC` |
 | `fame_rank` | number | 1 = most famous (Wikidata sitelink count, ties broken stably) |
+| `kind_rank` | number | 1 = most famous **within its `kind`** (same ordering, per-category) |
 | `fame_tier` | enum | `iconic` (top 300) · `renowned` (to 1,600) · `notable` (to 12,000) · `gem` (the long tail) |
 | `wikipedia` | url | English Wikipedia article |
 | `image` | url | Wikimedia Commons thumbnail (see licensing note below) |
@@ -53,7 +54,7 @@ gdf.plot(column="kind", markersize=1, figsize=(16, 8))
 
 - **Selection is deterministic, not editorial.** Places come from ~50 Wikidata classes (castles, waterfalls, show caves, archaeological sites, museums…), and a record only qualifies with coordinates **on Earth** (Olympus Mons and lunar craters are checked out), a Wikimedia Commons photo (P18), an English label and an English Wikipedia article. No AI-generated content: names and descriptions are Wikidata's own.
 - **Fame is measured, not judged:** `fame_rank` orders places by Wikidata sitelink count — how many language editions cover a place.
-- **`country` is Wikidata's P17 statement as-is.** Mostly present-day countries, but a few hundred places carry the state that existed when they did (Roman Empire, Soviet Union, Duchy of Brabant…). We keep the field honest rather than silently rewriting it; the site's [/famous/](https://detourmap.com/famous/) page ranks the 229 present-day countries and territories.
+- **`country` is Wikidata's P17 statement as-is.** Mostly present-day countries, but a few hundred places carry the state that existed when they did (Roman Empire, Soviet Union, Duchy of Brabant…). We keep the field honest rather than silently rewriting it; the site's [/famous/](https://detourmap.com/famous/) page ranks the 227 present-day countries and territories.
 - **Upstream is community-maintained.** Wikidata has errors; corrections made there flow into the next dataset build. If you spot a wrong coordinate or label, fixing it on Wikidata fixes it for everyone.
 - **Basemap ≠ data:** the site renders these points over OpenFreeMap (OpenStreetMap) tiles, but no OSM data is part of this dataset. OSM © OpenStreetMap contributors.
 
@@ -69,7 +70,7 @@ gdf.plot(column="kind", markersize=1, figsize=(16, 8))
 
 ## Citing
 
-> Detourmap Places: 70,343 places worth a detour, from Wikidata (2026). detourmap.com. DOI: 10.5281/zenodo.21432200. https://github.com/Flightmussy/detourmap-places
+> Detourmap Places: 71,763 places worth a detour, from Wikidata (2026). detourmap.com. DOI: 10.5281/zenodo.21432200. https://github.com/Flightmussy/detourmap-places
 
 ## Updating
 
