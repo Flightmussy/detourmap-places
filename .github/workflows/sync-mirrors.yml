@@ -30,7 +30,7 @@ jobs:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: |
           if [ -z "$KAGGLE_API_TOKEN" ]; then echo "No KAGGLE_API_TOKEN secret — skipping Kaggle sync."; exit 0; fi
-          pip -q install 'kaggle>=1.8'
+          pip -q install 'kaggle>=1.8' six  # kaggle 2.2.5 imports six without declaring it (it broke trainrouter-atlas's sync on 2026-11-08)
           mkdir -p ds && cp data/places.csv data/places.geojson data/places-compact.json ds/
           cat > ds/dataset-metadata.json <<'META'
           {
