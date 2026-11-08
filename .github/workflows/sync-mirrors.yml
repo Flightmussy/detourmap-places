@@ -34,8 +34,8 @@ jobs:
           mkdir -p ds && cp data/places.csv data/places.geojson data/places-compact.json ds/
           cat > ds/dataset-metadata.json <<'META'
           {
-            "id": "albanius/world-notable-places-detourmap",
-            "title": "World Notable Places — Detourmap (70k, from Wikidata)",
+            "id": "flightmussy/detourmap-places",
+            "title": "Detourmap Places (nature and archaeology, from Wikidata)",
             "licenses": [{ "name": "CC0-1.0" }]
           }
           META

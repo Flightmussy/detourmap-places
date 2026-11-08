@@ -46,25 +46,61 @@ const VERSION = '1.0.0'
 
 // ---- Category metadata (mirrors src/data/placesCore.ts — keep in sync) ------
 const KINDS = {
-  ancient: { label: 'Ancient & megalithic', slug: 'ancient-sites' },
-  monument: { label: 'Monuments & statues', slug: 'monuments' },
-  sacred: { label: 'Sacred sites', slug: 'sacred-sites' },
-  beach: { label: 'Beaches & coves', slug: 'beaches' },
-  waterfall: { label: 'Waterfalls', slug: 'waterfalls' },
-  cave: { label: 'Caves & caverns', slug: 'caves' },
-  volcanic: { label: 'Volcanic & geothermal', slug: 'volcanoes' },
-  natural: { label: 'Natural wonders', slug: 'natural-wonders' },
-  tower: { label: 'Towers & lighthouses', slug: 'towers' },
-  structure: { label: 'Great structures (bridges & aqueducts)', slug: 'bridges' },
-  castle: { label: 'Castles & palaces', slug: 'castles' },
-  military: { label: 'Military heritage', slug: 'military-heritage' },
-  abandoned: { label: 'Abandoned places & ghost towns', slug: 'ghost-towns' },
-  macabre: { label: 'Macabre & curious', slug: 'macabre-sites' },
-  museum: { label: 'Museums & galleries', slug: 'museums' },
-  garden: { label: 'Parks & gardens', slug: 'gardens' },
-  leisure: { label: 'Fun & leisure', slug: 'theme-parks' },
+  ruins: {
+    label: 'Archaeological',
+    slug: 'ancient-sites',
+    blurb: 'ancient ruins, tombs, ghost towns, shipwrecks, catacombs, mines, battlefields and crash sites',
+  },
+  sacred: { label: 'Sacred sites', slug: 'sacred-sites', blurb: 'churches, temples, monasteries, mosques and shrines' },
+  landmark: {
+    label: 'Built landmarks',
+    slug: 'castles',
+    blurb: 'castles, forts, palaces, monuments, statues, towers, lighthouses and bridges',
+  },
+  natural: { label: 'Nature', slug: 'natural-wonders', blurb: 'parks, mountains, waterfalls, caves, volcanoes and coves' },
+  parks: {
+    label: 'Parks & cemeteries',
+    slug: 'gardens',
+    blurb: 'botanical gardens, grand parks, arboretums and park-like cemeteries',
+  },
+  museum: { label: 'Museums & culture', slug: 'museums', blurb: 'art, history and science museums and galleries' },
+  fun: {
+    label: 'Fun & leisure',
+    slug: 'theme-parks',
+    blurb: 'theme parks, zoos, aquariums, ski resorts, distilleries, wineries, casinos and funiculars',
+  },
 }
+/** Every kind the pipeline knows. INPUT is matched against all of them, so a
+ *  saved call naming a kind the site no longer carries comes back empty rather
+ *  than as an error. */
 const KIND_KEYS = Object.keys(KINDS)
+/** The kinds the DEPLOYED cut actually holds — recomputed from the rows on every
+ *  reload, and the only list this server describes ITSELF with.
+ *
+ *  Derived rather than declared, because the site narrowed from seven kinds to
+ *  two on 2026-08-16 (SITE_CATEGORIES in placesCore) and this file went on
+ *  offering museums, gardens and theme parks to every AI client that connected,
+ *  over a dataset holding none of them. A list read off the rows cannot. */
+let LIVE_KINDS = KIND_KEYS
+/** The kinds as prose, for descriptions. Derived, never typed out twice: the
+ * hand-written list drifted a whole taxonomy behind the map (it still named
+ * beaches, caves, volcanoes and ghost towns after the 2026-07-20 fold to seven). */
+const kindProse = () => {
+  const labels = LIVE_KINDS.map((k) => KINDS[k].label.toLowerCase())
+  if (labels.length < 2) return labels[0] ?? 'no kinds loaded'
+  return `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`
+}
+/** The same list, saying what each kind holds. The server instructions get this
+ *  rather than kindProse(): "nature and archaeological" does not tell a model it
+ *  can ask for shipwrecks, catacombs or a sea cave. */
+const kindDetail = () =>
+  LIVE_KINDS.map((k) => `${KINDS[k].label.toLowerCase()} (${KINDS[k].blurb})`).join('; ')
+/** Copy substitution for tool descriptions AND their schemas — see tools/list. */
+const fillCopy = (text) =>
+  String(text)
+    .replaceAll('{{TOTAL}}', displayTotals.total.toLocaleString('en-US'))
+    .replaceAll('{{KINDS}}', kindProse())
+    .replaceAll('{{KIND_LIST}}', LIVE_KINDS.map((k) => `${k} (${KINDS[k].label})`).join(', '))
 const KIND_BY_ANY = new Map()
 for (const [key, m] of Object.entries(KINDS)) {
   KIND_BY_ANY.set(key, key)
@@ -118,7 +154,11 @@ function loadData() {
     }
   })
   displayTotals = { total: data.total ?? places.length, countries: data.countries ?? 0 }
-  console.log(`detourmap-mcp: loaded ${places.length} places from ${DATA}`)
+  const present = new Set(places.map((pl) => pl.kind))
+  LIVE_KINDS = KIND_KEYS.filter((k) => present.has(k))
+  console.log(
+    `detourmap-mcp: loaded ${places.length} places from ${DATA} (${LIVE_KINDS.length} kinds: ${LIVE_KINDS.join(', ')})`,
+  )
 }
 function freshData() {
   const now = Date.now()
@@ -187,16 +227,23 @@ function clampInt(v, def, max) {
   const n = Number.isFinite(Number(v)) ? Math.floor(Number(v)) : def
   return Math.max(1, Math.min(max, n))
 }
-const KIND_ENUM_DESC =
-  'Kind of place — key or slug: ' + KIND_KEYS.map((k) => `${k} (${KINDS[k].label})`).join(', ')
+// A placeholder, not a computed string: it is filled from the LOADED data on
+// every tools/list (see fillCopy), so the schema cannot outlive the cut it names.
+const KIND_ENUM_DESC = 'Kind of place — key or slug: {{KIND_LIST}}'
 
 // ---- Tools ------------------------------------------------------------------
 const TOOLS = [
   {
     name: 'search_places',
     title: 'Search places by name',
+    // {{TOTAL}} is substituted from the loaded dataset on every tools/list, NOT
+    // baked in. It was baked in once and went stale by 41,436 places: the number
+    // here still read 70,520 on 2026-07-29 while the atlas held 111,956, and
+    // every AI client that connected was told the wrong figure. The kinds are
+    // named from KINDS for the same reason — this listed the pre-2026-07-20
+    // eighteen-kind scheme long after it folded to seven.
     description:
-      'Search 70,520 notable places worldwide by name (accent- and case-insensitive substring match): ruins, beaches, caves, waterfalls, volcanoes, castles, museums, ghost towns and more. Optionally filter by country (name or ISO code) and kind. Results come best-match-first, then by fame; each carries coordinates, fame rank/tier and links to the map and Wikipedia. If nothing matches, retry with a shorter fragment.',
+      'Search {{TOTAL}} notable places worldwide by name (accent- and case-insensitive substring match): {{KINDS}}. Optionally filter by country (name or ISO code) and kind. Results come best-match-first, then by fame; each carries coordinates, fame rank/tier and links to the map and Wikipedia. If nothing matches, retry with a shorter fragment.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -211,7 +258,7 @@ const TOOLS = [
       const q = norm(args.query)
       if (!q) return { error: 'query must be a non-empty string' }
       const kind = kindOf(args.kind)
-      if (kind === undefined) return { error: `Unknown kind "${args.kind}". Valid: ${KIND_KEYS.join(', ')}` }
+      if (kind === undefined) return { error: `Unknown kind "${args.kind}". Valid: ${LIVE_KINDS.join(', ')}` }
       const limit = clampInt(args.limit, 10, 50)
       const scored = []
       for (const p of places) {
@@ -273,7 +320,7 @@ const TOOLS = [
       const lon = Number(args.longitude)
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) return { error: 'latitude/longitude must be numbers' }
       const kind = kindOf(args.kind)
-      if (kind === undefined) return { error: `Unknown kind "${args.kind}". Valid: ${KIND_KEYS.join(', ')}` }
+      if (kind === undefined) return { error: `Unknown kind "${args.kind}". Valid: ${LIVE_KINDS.join(', ')}` }
       const radius = Math.max(1, Math.min(500, Number(args.radius_km) || 50))
       const limit = clampInt(args.limit, 15, 50)
       const hits = []
@@ -306,7 +353,7 @@ const TOOLS = [
     },
     run(args) {
       const kind = kindOf(args.kind)
-      if (kind === undefined) return { error: `Unknown kind "${args.kind}". Valid: ${KIND_KEYS.join(', ')}` }
+      if (kind === undefined) return { error: `Unknown kind "${args.kind}". Valid: ${LIVE_KINDS.join(', ')}` }
       const limit = clampInt(args.limit, 10, 100)
       const out = []
       for (const p of places) {
@@ -320,15 +367,15 @@ const TOOLS = [
   },
   {
     name: 'list_kinds',
-    title: 'The seventeen kinds of place',
+    title: 'The kinds of place on the map',
     description:
-      'Detourmap’s seventeen kinds (layers) with worldwide counts and browsable index pages — from ancient ruins and sacred sites to ghost towns, military heritage, macabre curiosities and theme parks.',
+      'The layers Detourmap carries — {{KINDS}} — with worldwide counts and a browsable index page for each. The atlas is cut to these kinds and holds nothing else.',
     inputSchema: { type: 'object', properties: {} },
     run() {
       const counts = {}
       for (const p of places) counts[p.kind] = (counts[p.kind] || 0) + 1
       return {
-        kinds: KIND_KEYS.map((k) => ({
+        kinds: LIVE_KINDS.map((k) => ({
           kind: k,
           label: KINDS[k].label,
           places: counts[k] || 0,
@@ -395,7 +442,7 @@ const TOOLS = [
         places: places.length,
         countries: byCountry.size,
         by_kind: Object.fromEntries(
-          KIND_KEYS.map((k) => [k, { label: KINDS[k].label, places: byKind[k] || 0 }]),
+          LIVE_KINDS.map((k) => [k, { label: KINDS[k].label, places: byKind[k] || 0 }]),
         ),
         by_fame_tier: byTier,
         top_countries: [...byCountry.entries()]
@@ -425,7 +472,7 @@ const TOOLS = [
     },
     run(args) {
       const kind = kindOf(args.kind)
-      if (kind === undefined) return { error: `Unknown kind "${args.kind}". Valid: ${KIND_KEYS.join(', ')}` }
+      if (kind === undefined) return { error: `Unknown kind "${args.kind}". Valid: ${LIVE_KINDS.join(', ')}` }
       const pool = places.filter((p) => matchesCountry(p, args.country) && (!kind || p.kind === kind))
       if (!pool.length) return { error: 'No places match those filters.' }
       // 70% of rolls come from the notable/gem long tail (mirrors the site).
@@ -448,17 +495,29 @@ function handleRpc(msg) {
       serverInfo: { name: 'detourmap', title: 'Detourmap — every place worth the detour', version: VERSION },
       instructions:
         `Read-only tools over the Detourmap atlas: ${displayTotals.total.toLocaleString('en-US')} notable places ` +
-        `across ${displayTotals.countries} countries in seventeen kinds — ruins, beaches, caves, waterfalls, volcanoes, ` +
-        `castles, museums, ghost towns and more (facts from Wikidata, CC0; every place has a photo and an English ` +
-        `Wikipedia article). Every result links its spot on ${SITE_URL}. Use search_places / get_place for lookups, ` +
+        `across ${displayTotals.countries} countries, and nothing else — the map is cut to ` +
+        `${LIVE_KINDS.length} kinds: ${kindDetail()}. It is an atlas of what nature made and what people left ` +
+        `behind, so it holds no museums, galleries, churches, castles, gardens or theme parks. ` +
+        `(Facts from Wikidata, CC0; every place has a photo and a Wikipedia article, in English where one exists ` +
+        `and otherwise in at least three other languages.) Every result links its spot on ${SITE_URL}. ` +
+        `Use search_places / get_place for lookups, ` +
         `places_near for "what's worth visiting near X" (geocode X first), top_places for fame, list_kinds / ` +
         `list_countries for coverage, get_statistics for aggregate claims and random_place for discovery.`,
     }
   }
   if (method === 'ping') return {}
   if (method === 'tools/list') {
+    freshData()
     return {
-      tools: TOOLS.map(({ name, title, description, inputSchema }) => ({ name, title, description, inputSchema })),
+      tools: TOOLS.map(({ name, title, description, inputSchema }) => ({
+        name,
+        title,
+        description: fillCopy(description),
+        // The SCHEMA is substituted too. Its `kind` parameter enumerates the
+        // kinds, and a schema baked at startup is exactly as stale as a
+        // hard-coded description — the bug this file keeps relearning.
+        inputSchema: JSON.parse(fillCopy(JSON.stringify(inputSchema))),
+      })),
     }
   }
   if (method === 'tools/call') {

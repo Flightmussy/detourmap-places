@@ -1,6 +1,6 @@
 # Detourmap MCP server
 
-The atlas as tools for AI assistants — search 71,763 notable places by name, find what's worth a detour near a coordinate, pull fame rankings and per-country statistics.
+The atlas as tools for AI assistants — search the places by name, find what's worth a detour near a coordinate, pull fame rankings and per-country statistics. The server reads its counts and its kinds from the data it loads, so what it tells a client is what the map holds today.
 
 **You don't need to run this.** A free hosted instance is live:
 
