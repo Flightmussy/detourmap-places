@@ -17,12 +17,18 @@ on:
     types: [published]
   workflow_dispatch:
 
+# Both jobs hold an API token, so the actions are pinned to commits and the
+# packages to exact versions (bump them deliberately), and the workflow token
+# is read only.
+permissions:
+  contents: read
+
 jobs:
   kaggle:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
       - name: Push a new Kaggle dataset version
@@ -30,7 +36,7 @@ jobs:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: |
           if [ -z "$KAGGLE_API_TOKEN" ]; then echo "No KAGGLE_API_TOKEN secret — skipping Kaggle sync."; exit 0; fi
-          pip -q install 'kaggle>=1.8' six  # kaggle 2.2.5 imports six without declaring it (it broke trainrouter-atlas's sync on 2026-11-08)
+          pip -q install 'kaggle==2.2.5' 'six==1.17.0'  # pinned: this job holds KAGGLE_API_TOKEN; kaggle 2.2.5 imports six without declaring it
           mkdir -p ds && cp data/places.csv data/places.geojson data/places-compact.json ds/
           cat > ds/dataset-metadata.json <<'META'
           {
@@ -61,8 +67,8 @@ jobs:
   huggingface:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
       - name: Push files to the Hugging Face dataset
@@ -70,7 +76,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           if [ -z "$HF_TOKEN" ]; then echo "No HF_TOKEN secret — skipping Hugging Face sync."; exit 0; fi
-          pip -q install huggingface_hub
+          pip -q install 'huggingface_hub==2.4.0'  # pinned: this job holds HF_TOKEN
           python - <<'EOF'
           import os
           from huggingface_hub import HfApi
